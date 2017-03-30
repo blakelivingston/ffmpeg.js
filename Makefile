@@ -7,30 +7,26 @@ POST_JS_SYNC = build/post-sync.js
 POST_JS_WORKER = build/post-worker.js
 
 COMMON_FILTERS = aresample scale crop overlay
-COMMON_DEMUXERS = matroska ogg avi mov flv mpegps image2 mp3 concat
+COMMON_DEMUXERS = matroska ogg mov avi gif apng image2 mp3 concat
 COMMON_DECODERS = \
-	vp8 vp9 theora \
-	mpeg2video mpeg4 h264 hevc \
-	png mjpeg \
-	vorbis opus \
-	mp3 ac3 aac \
-	ass ssa srt webvtt
+	vp8 \
+	aac ac3 mp3 \
+	mpeg4 h264 \
+	png mjpeg gif \
+	vorbis opus
 
-WEBM_MUXERS = webm ogg null image2
-WEBM_ENCODERS = libvpx_vp8 libopus mjpeg
+WEBM_MUXERS = webm null image2 gif
+WEBM_ENCODERS = libvpx_vp8 libopus gif mjpeg png
 FFMPEG_WEBM_BC = build/ffmpeg-webm/ffmpeg.bc
 LIBASS_PC_PATH = ../freetype/dist/lib/pkgconfig:../fribidi/dist/lib/pkgconfig
 FFMPEG_WEBM_PC_PATH_ = \
-	$(LIBASS_PC_PATH):\
-	../libass/dist/lib/pkgconfig:\
 	../opus/dist/lib/pkgconfig
 FFMPEG_WEBM_PC_PATH = $(subst : ,:,$(FFMPEG_WEBM_PC_PATH_))
 LIBASS_DEPS = \
 	build/fribidi/dist/lib/libfribidi.so \
 	build/freetype/dist/lib/libfreetype.so
 WEBM_SHARED_DEPS = \
-	$(LIBASS_DEPS) \
-	build/libass/dist/lib/libass.so \
+	build/zlib/dist/lib/libz.so \
 	build/opus/dist/lib/libopus.so \
 	build/libvpx/dist/lib/libvpx.so
 
@@ -40,22 +36,21 @@ FFMPEG_MP4_BC = build/ffmpeg-mp4/ffmpeg.bc
 FFMPEG_MP4_PC_PATH = ../x264/dist/lib/pkgconfig
 MP4_SHARED_DEPS = \
 	build/lame/dist/lib/libmp3lame.so \
+	build/zlib/dist/lib/libz.so \
 	build/x264/dist/lib/libx264.so
 
 all: webm mp4
 webm: ffmpeg-webm.js ffmpeg-worker-webm.js
 mp4: ffmpeg-mp4.js ffmpeg-worker-mp4.js
 
-clean: clean-js \
-	clean-freetype clean-fribidi clean-libass \
+clean: clean-js  \
+	clean-zlib \
 	clean-opus clean-libvpx clean-ffmpeg-webm \
 	clean-lame clean-x264 clean-ffmpeg-mp4
 clean-js:
 	rm -f -- ffmpeg*.js
 clean-opus:
 	-cd build/opus && rm -rf dist && make clean
-clean-freetype:
-	-cd build/freetype && rm -rf dist && make clean
 clean-fribidi:
 	-cd build/fribidi && rm -rf dist && make clean
 clean-libass:
@@ -71,6 +66,10 @@ clean-ffmpeg-webm:
 clean-ffmpeg-mp4:
 	-cd build/ffmpeg-mp4 && rm -f ffmpeg.bc && make clean
 
+
+clean-zlib:
+	-cd build/zlib && rm -rf dist && make clean
+
 build/opus/configure:
 	cd build/opus && ./autogen.sh
 
@@ -85,6 +84,14 @@ build/opus/dist/lib/libopus.so: build/opus/configure
 		--disable-asm \
 		--disable-rtcd \
 		--disable-intrinsics \
+		&& \
+	emmake make -j8 && \
+	emmake make install
+
+build/zlib/dist/lib/libz.so:
+	cd build/zlib && \
+	emconfigure ./configure \
+		--prefix="$$(pwd)/dist" \
 		&& \
 	emmake make -j8 && \
 	emmake make install
@@ -260,20 +267,18 @@ FFMPEG_COMMON_ARGS = \
 	--disable-lzma \
 	--disable-sdl \
 	--disable-securetransport \
-	--disable-xlib \
-	--disable-zlib
+	--disable-xlib
 
 build/ffmpeg-webm/ffmpeg.bc: $(WEBM_SHARED_DEPS)
 	cd build/ffmpeg-webm && \
 	git reset --hard && \
-	patch -p1 < ../ffmpeg-default-font.patch && \
+	patch -p1 < ../arc4.patch && \
+        patch -p1 < ../ffmpeg-default-font.patch && \
 	patch -p1 < ../ffmpeg-disable-monotonic.patch && \
 	EM_PKG_CONFIG_PATH=$(FFMPEG_WEBM_PC_PATH) emconfigure ./configure \
 		$(FFMPEG_COMMON_ARGS) \
 		$(addprefix --enable-encoder=,$(WEBM_ENCODERS)) \
 		$(addprefix --enable-muxer=,$(WEBM_MUXERS)) \
-		--enable-filter=subtitles \
-		--enable-libass \
 		--enable-libopus \
 		--enable-libvpx \
 		--extra-cflags="-I../libvpx/dist/include" \
@@ -286,6 +291,7 @@ build/ffmpeg-mp4/ffmpeg.bc: $(MP4_SHARED_DEPS)
 	cd build/ffmpeg-mp4 && \
 	git reset --hard && \
 	patch -p1 < ../ffmpeg-disable-monotonic.patch && \
+	patch -p1 < ../arc4.patch && \
 	EM_PKG_CONFIG_PATH=$(FFMPEG_MP4_PC_PATH) emconfigure ./configure \
 		$(FFMPEG_COMMON_ARGS) \
 		$(addprefix --enable-encoder=,$(MP4_ENCODERS)) \
