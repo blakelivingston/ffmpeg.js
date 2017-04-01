@@ -16,7 +16,7 @@ COMMON_DECODERS = \
 	vorbis opus
 
 WEBM_MUXERS = webm null image2 gif
-WEBM_ENCODERS = libvpx_vp8 libopus gif mjpeg png
+WEBM_ENCODERS = libvpx_vp8 libopus gif mjpeg png huffyuv
 FFMPEG_WEBM_BC = build/ffmpeg-webm/ffmpeg.bc
 LIBASS_PC_PATH = ../freetype/dist/lib/pkgconfig:../fribidi/dist/lib/pkgconfig
 FFMPEG_WEBM_PC_PATH_ = \
@@ -26,7 +26,6 @@ LIBASS_DEPS = \
 	build/fribidi/dist/lib/libfribidi.so \
 	build/freetype/dist/lib/libfreetype.so
 WEBM_SHARED_DEPS = \
-	build/zlib/dist/lib/libz.so \
 	build/opus/dist/lib/libopus.so \
 	build/libvpx/dist/lib/libvpx.so
 
@@ -36,10 +35,9 @@ FFMPEG_MP4_BC = build/ffmpeg-mp4/ffmpeg.bc
 FFMPEG_MP4_PC_PATH = ../x264/dist/lib/pkgconfig
 MP4_SHARED_DEPS = \
 	build/lame/dist/lib/libmp3lame.so \
-	build/zlib/dist/lib/libz.so \
 	build/x264/dist/lib/libx264.so
 
-all: webm mp4
+all: webm #mp4
 webm: ffmpeg-webm.js ffmpeg-worker-webm.js
 mp4: ffmpeg-mp4.js ffmpeg-worker-mp4.js
 
@@ -251,6 +249,8 @@ FFMPEG_COMMON_ARGS = \
 	--enable-swresample \
 	--enable-swscale \
 	--enable-avfilter \
+	--enable-zlib \
+	--enable-parser=png \
 	--disable-network \
 	--disable-d3d11va \
 	--disable-dxva2 \
@@ -281,8 +281,8 @@ build/ffmpeg-webm/ffmpeg.bc: $(WEBM_SHARED_DEPS)
 		$(addprefix --enable-muxer=,$(WEBM_MUXERS)) \
 		--enable-libopus \
 		--enable-libvpx \
-		--extra-cflags="-I../libvpx/dist/include" \
-		--extra-ldflags="-L../libvpx/dist/lib" \
+		--extra-cflags="-I../libvpx/dist/include -I../zlib/dist/include" \
+		--extra-ldflags="-L../libvpx/dist/lib -L../zlib/dist/lib" \
 		&& \
 	emmake make -j8 && \
 	cp ffmpeg ffmpeg.bc
