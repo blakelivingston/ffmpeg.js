@@ -7,13 +7,11 @@ POST_JS_SYNC = build/post-sync.js
 POST_JS_WORKER = build/post-worker.js
 
 COMMON_FILTERS = aresample scale crop overlay palettegen paletteuse
-COMMON_DEMUXERS = matroska ogg mov avi gif apng image2 mp3 concat
+COMMON_DEMUXERS = matroska ogg mov avi gif apng image2 concat
 COMMON_DECODERS = \
 	vp8 \
-	aac ac3 mp3 \
 	mpeg4 h264 \
-	png mjpeg gif \
-	vorbis opus
+	png mjpeg gif
 
 WEBM_MUXERS = webm null image2 gif
 WEBM_ENCODERS = libvpx_vp8 libopus gif mjpeg png huffyuv
